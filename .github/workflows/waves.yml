@@ -1,0 +1,63 @@
+# GitHub Actions workflow: builds the NZ wave JSON and deploys it to GitHub Pages.
+# Copy to .github/workflows/waves.yml there. Public repos get unlimited
+# standard-runner minutes; each run is ~3–5 min, and a run whose model cycle is
+# already published exits in seconds.
+name: waves
+
+on:
+  schedule:
+    - cron: "40 8,20 * * *"   # after ECMWF 00Z/12Z wave data is out (~7–8 h after cycle)
+  workflow_dispatch:
+    inputs:
+      source:
+        description: "ecmwf | copernicus"
+        default: "ecmwf"
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: waves
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    outputs:
+      skip: ${{ steps.build.outputs.skip }}
+    env:
+      SOURCE: ${{ inputs.source || vars.WAVE_SOURCE || 'ecmwf' }}
+      # Only needed for SOURCE=copernicus. Stored as encrypted repo secrets, never in code.
+      COPERNICUSMARINE_SERVICE_USERNAME: ${{ secrets.COPERNICUSMARINE_SERVICE_USERNAME }}
+      COPERNICUSMARINE_SERVICE_PASSWORD: ${{ secrets.COPERNICUSMARINE_SERVICE_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - run: python -m unittest discover -s tests
+      - name: Build wave files
+        id: build
+        run: |
+          python run.py --source "$SOURCE" --refdata locations.json --out site \
+            --published-meta "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/v1/meta.json" \
+            | tee summary.json
+          if grep -q '"skipped": true' summary.json; then echo "skip=1" >> "$GITHUB_OUTPUT"; fi
+      - if: steps.build.outputs.skip != '1'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+  deploy:
+    needs: build
+    if: needs.build.outputs.skip != '1'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v4
