@@ -27,8 +27,8 @@ class BuildTest(unittest.TestCase):
         root = os.path.join(self.tmp, "v1")
         meta = json.load(open(os.path.join(root, "meta.json")))
         self.assertEqual(meta["schema"], 1)
-        self.assertEqual(meta["dataLicence"], "CC-BY-4.0")
-        self.assertIn("CC BY 4.0", meta["credit"])
+        self.assertIn("dataLicence", meta)
+        self.assertIn("credit", meta)
         self.assertEqual(len(meta["times"]), 8)
         self.assertEqual(meta["times"][1] - meta["times"][0], 3 * 3600)
         cells = json.load(open(os.path.join(root, "cells.json")))
@@ -54,6 +54,15 @@ class BuildTest(unittest.TestCase):
         json.dump({"locations": [["A", -37.8, 174.8, "tide-station"], ["B", -36.9, 174.4, "coastal-spot"],
                                  ["C", -37.0, 176.5, "place"]]}, open(loc, "w"))
         np.testing.assert_array_equal(build.load_points(loc), build.load_points(self.ref))
+
+    def test_data_terms_follow_upstream_licence(self):
+        ecmwf = build.data_terms({"licence": "CC-BY-4.0", "attribution": "Contains ECMWF open data (CC BY 4.0)."})
+        self.assertEqual(ecmwf["dataLicence"], "CC-BY-4.0")
+        cm = build.data_terms({"licence": "Copernicus Marine Service licence",
+                               "attribution": "Generated using E.U. Copernicus Marine Service Information; https://doi.org/10.48670/moi-00017"})
+        self.assertEqual(cm["dataLicence"], "Copernicus-Marine-Service-Licence")
+        self.assertTrue(cm["credit"].startswith("Generated using E.U. Copernicus Marine Service Information; https://doi.org/"))
+        self.assertNotIn("CC BY", cm["credit"])
 
     def test_antimeridian_crop(self):
         import xarray as xr

@@ -4,7 +4,17 @@ Free, open wave forecasts for the New Zealand coast as small static JSON files,
 rebuilt twice a day from open model data.
 
 - **Code:** Apache-2.0 ([LICENSE](LICENSE), keep [NOTICE](NOTICE))
-- **Data:** CC BY 4.0, commercial use allowed with attribution ([LICENSE-DATA.md](LICENSE-DATA.md))
+- **Data:** licence follows the upstream source — CC BY 4.0 for ECMWF runs, the
+  Copernicus Marine Service licence for Copernicus runs. Both allow commercial
+  use with attribution; see [LICENSE-DATA.md](LICENSE-DATA.md) and the
+  `dataLicence` / `credit` fields in `v1/meta.json`.
+
+## Credits
+
+- Contains ECMWF open data (CC BY 4.0).
+- Generated using E.U. Copernicus Marine Service Information; https://doi.org/10.48670/moi-00017
+  (applies to runs with `"provider": "copernicus-marine"`).
+- Locations: Land Information New Zealand (LINZ) and GeoNames, CC BY 4.0.
 
 ## Sources
 
@@ -14,6 +24,8 @@ rebuilt twice a day from open model data.
 | `copernicus` | Météo-France MFWAM (Copernicus Marine `GLOBAL_ANALYSISFORECAST_WAV_001_027`) | 1/12° | 3 h, 10 days | Copernicus Marine Service licence (free, attribution) | free account |
 
 `copernicus` is implemented but not yet verified against a live account.
+Run records (which product, which model cycle, when) are kept in the Actions
+logs and in each run's `meta.json`.
 
 ## Output (schema 1)
 

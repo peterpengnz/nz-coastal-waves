@@ -30,6 +30,22 @@ MAX_MATCH_KM = 60.0  # advertised in meta.json; enforced by clients
 R = 6371.0
 
 
+def data_terms(attrs: dict) -> dict:
+    """Licence of the published files depends on the upstream source (see LICENSE-DATA.md).
+
+    ECMWF open data is CC BY 4.0, so our output can be CC BY 4.0 too. Copernicus
+    Marine products come under the Copernicus Marine Service licence, whose clause
+    2.6 (traceability records) must be passed on to downstream users; CC BY 4.0
+    forbids extra conditions, so Copernicus-derived output keeps that licence.
+    """
+    if attrs.get("licence") == "CC-BY-4.0":
+        return {"dataLicence": "CC-BY-4.0",
+                "credit": f"Wave forecast processed by {PROJECT} (CC BY 4.0). {attrs['attribution']}"}
+    return {"dataLicence": "Copernicus-Marine-Service-Licence",
+            "licenceUrl": "https://marine.copernicus.eu/user-corner/service-commitments-and-licence",
+            "credit": f"{attrs['attribution']} Processed by {PROJECT}."}
+
+
 def load_points(path: str) -> np.ndarray:
     """locations.json ({"locations": [[name, lat, lon, kind], ...]}) or the app's refdata.json."""
     with open(path, encoding="utf-8") as f:
@@ -107,8 +123,7 @@ def build(ds: xr.Dataset, refdata_path: str, out_dir: str) -> dict:
     meta = {
         "schema": SCHEMA, "run": ds.attrs["run"], "provider": ds.attrs["provider"], "model": ds.attrs["model"],
         "gridDeg": ds.attrs["grid_deg"], "attribution": ds.attrs["attribution"], "upstreamLicence": ds.attrs["licence"],
-        "dataLicence": "CC-BY-4.0",
-        "credit": f"Wave forecast processed by {PROJECT} (CC BY 4.0). {ds.attrs['attribution']}",
+        **data_terms(ds.attrs),
         "times": times, "radiusKm": RADIUS_KM, "maxMatchKm": MAX_MATCH_KM,
         "fields": {"hs": "cm", "dir": "deg from", "per": "0.1 s", "hsSw": "cm", "perSw": "0.1 s", "hsWw": "cm"},
         "cells": int(clat.size), "tiles": len(tiles),
