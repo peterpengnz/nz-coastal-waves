@@ -88,8 +88,9 @@ def copernicus(hours: int = 168, workdir: str | None = None) -> xr.Dataset:
     import copernicusmarine as cm
 
     now = dt.datetime.now(dt.timezone.utc).replace(minute=0, second=0, microsecond=0)
-    start = now - dt.timedelta(hours=now.hour % 3)
-    end = start + dt.timedelta(hours=hours)
+    # Start 24 h back so "today" keeps its earlier hours (the product includes recent analysis).
+    start = now - dt.timedelta(hours=now.hour % 3) - dt.timedelta(hours=24)
+    end = start + dt.timedelta(hours=hours + 24)
     work = workdir or tempfile.mkdtemp(prefix="cmems-wave-")
     parts = []
     for i, (lo, hi) in enumerate([(LON_W, 179.99), (-180.0, LON_E)]):  # two requests across the antimeridian
@@ -111,7 +112,9 @@ def copernicus(hours: int = 168, workdir: str | None = None) -> xr.Dataset:
     ds.attrs.update(
         provider="copernicus-marine",
         model="Météo-France MFWAM (GLOBAL_ANALYSISFORECAST_WAV_001_027)",
-        run=str(raw.attrs.get("date_created", start.isoformat())),
+        # The product has no single "model cycle" attribute we can rely on; the run id is the
+        # retrieval window start (UTC, Z), which is unique per publish and sortable.
+        run=start.strftime("%Y-%m-%dT%H:%M:%SZ"),
         grid_deg=1 / 12,
         attribution="Generated using E.U. Copernicus Marine Service Information; https://doi.org/10.48670/moi-00017",
         licence="Copernicus Marine Service licence",

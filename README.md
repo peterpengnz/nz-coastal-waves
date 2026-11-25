@@ -20,10 +20,11 @@ rebuilt twice a day from open model data.
 
 | `--source` | Model | Grid | Steps | Upstream licence | Account |
 |---|---|---|---|---|---|
-| `ecmwf` (default) | ECMWF IFS wave model, open data | 0.25° | 3 h to 144 h, then 6 h | CC BY 4.0 | none |
-| `copernicus` | Météo-France MFWAM (Copernicus Marine `GLOBAL_ANALYSISFORECAST_WAV_001_027`) | 1/12° | 3 h, 10 days | Copernicus Marine Service licence (free, attribution) | free account |
+| `ecmwf` | ECMWF IFS wave model, open data | 0.25° | 3 h to 144 h, then 6 h | CC BY 4.0 | none |
+| `copernicus` (default once `WAVE_SOURCE=copernicus` is set) | Météo-France MFWAM (Copernicus Marine `GLOBAL_ANALYSISFORECAST_WAV_001_027`) | 1/12° | 3 h, 10 days | Copernicus Marine Service licence (free, attribution) | free account |
 
-`copernicus` is implemented but not yet verified against a live account.
+`copernicus` verified 2026-11-25 (3,667 cells, median 12 km from a location to its
+cell; values match the MFWAM model served elsewhere to ±0.01 m at shared cells).
 Run records (which product, which model cycle, when) are kept in the Actions
 logs and in each run's `meta.json`.
 
