@@ -12,6 +12,10 @@ on:
       source:
         description: "ecmwf | copernicus"
         default: "ecmwf"
+      publish:
+        description: "Deploy to GitHub Pages (false = trial run: build + downloadable artifact only)"
+        type: boolean
+        default: true
 
 permissions:
   contents: read
@@ -28,6 +32,7 @@ jobs:
     timeout-minutes: 20
     outputs:
       skip: ${{ steps.build.outputs.skip }}
+      publish: ${{ steps.mode.outputs.publish }}
     env:
       SOURCE: ${{ inputs.source || vars.WAVE_SOURCE || 'ecmwf' }}
       # Only needed for SOURCE=copernicus. Stored as encrypted repo secrets, never in code.
@@ -39,6 +44,9 @@ jobs:
         with:
           python-version: "3.12"
           cache: pip
+      - id: mode
+        # Scheduled runs always publish; manual runs publish unless publish=false.
+        run: echo "publish=${{ github.event_name != 'workflow_dispatch' || inputs.publish }}" >> "$GITHUB_OUTPUT"
       - run: pip install -r requirements.txt
       - run: python -m unittest discover -s tests
       - name: Build wave files
@@ -48,13 +56,19 @@ jobs:
             --published-meta "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/v1/meta.json" \
             | tee summary.json
           if grep -q '"skipped": true' summary.json; then echo "skip=1" >> "$GITHUB_OUTPUT"; fi
-      - if: steps.build.outputs.skip != '1'
+      - if: steps.build.outputs.skip != '1' && steps.mode.outputs.publish == 'true'
         uses: actions/upload-pages-artifact@v5
         with:
           path: site
+      - if: steps.build.outputs.skip != '1' && steps.mode.outputs.publish != 'true'
+        uses: actions/upload-artifact@v7
+        with:
+          name: trial-${{ env.SOURCE }}
+          path: site
+          retention-days: 7
   deploy:
     needs: build
-    if: needs.build.outputs.skip != '1'
+    if: needs.build.outputs.skip != '1' && needs.build.outputs.publish == 'true'
     runs-on: ubuntu-latest
     environment:
       name: github-pages
